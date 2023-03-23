@@ -11,17 +11,10 @@ export class CommentEntity extends AbstractEntity {
   @Column()
   body: string;
 
-  @ManyToOne(
-    type => UserEntity,
-    user => user.comments,
-    { eager: true },
-  )
+  @ManyToOne((type) => UserEntity, (user) => user.comments, { eager: true })
   author: UserEntity;
 
-  @ManyToOne(
-    type => ArticleEntity,
-    article => article.comments,
-  )
+  @ManyToOne((type) => ArticleEntity, (article) => article.comments)
   article: ArticleEntity;
 
   toJSON() {

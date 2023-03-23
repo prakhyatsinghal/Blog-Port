@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, FindOneOptions, FindManyOptions } from 'typeorm';
 
 import { ArticleEntity } from 'src/entities/article.entity';
 import { UserEntity } from 'src/entities/user.entity';
@@ -24,11 +24,15 @@ export class ArticleService {
 
   private async upsertTags(tagList: string[]): Promise<void> {
     const foundTags = await this.tagRepo.find({
-      where: tagList.map(t => ({ tag: t })),
+      where: tagList.map((t) => ({ tag: t })),
     });
-    const newTags = tagList.filter(t => !foundTags.map(t => t.tag).includes(t));
+    const newTags = tagList.filter(
+      (t) => !foundTags.map((t) => t.tag).includes(t),
+    );
     await Promise.all(
-      this.tagRepo.create(newTags.map(t => ({ tag: t }))).map(t => t.save()),
+      this.tagRepo
+        .create(newTags.map((t) => ({ tag: t })))
+        .map((t) => t.save()),
     );
   }
 
@@ -36,7 +40,7 @@ export class ArticleService {
     user: UserEntity,
     query: FindAllQuery,
   ): Promise<ArticleResponse[]> {
-    let findOptions: any = {
+    const findOptions: any = {
       where: {},
     };
     if (query.author) {
@@ -54,7 +58,7 @@ export class ArticleService {
     if (query.limit) {
       findOptions.limit = query.limit;
     }
-    return (await this.articleRepo.find(findOptions)).map(article =>
+    return (await this.articleRepo.find(findOptions)).map((article) =>
       article.toArticle(user),
     );
   }
@@ -67,13 +71,12 @@ export class ArticleService {
       where: { id: user.id },
       relations: ['followee'],
     });
-    const findOptions = {
+    const findOptions: FindManyOptions<ArticleEntity> = {
       ...query,
-      where: followee.map(follow => ({ author: follow.id })),
+      where: followee.map((follow) => ({ author: { id: follow.id } })),
     };
-    return (await this.articleRepo.find(findOptions)).map(article =>
-      article.toArticle(user),
-    );
+    const articles = await this.articleRepo.find(findOptions);
+    return articles.map((article) => article.toArticle(user));
   }
 
   findBySlug(slug: string): Promise<ArticleEntity> {
@@ -94,7 +97,9 @@ export class ArticleService {
     article.author = user;
     await this.upsertTags(data.tagList);
     const { slug } = await article.save();
-    return (await this.articleRepo.findOne({ slug })).toArticle(user);
+    const options: FindOneOptions<ArticleEntity> = { where: { slug } };
+    const foundArticle = await this.articleRepo.findOne(options);
+    return foundArticle.toArticle(user);
   }
 
   async updateArticle(
@@ -138,7 +143,9 @@ export class ArticleService {
     user: UserEntity,
   ): Promise<ArticleResponse> {
     const article = await this.findBySlug(slug);
-    article.favoritedBy = article.favoritedBy.filter(fav => fav.id !== user.id);
+    article.favoritedBy = article.favoritedBy.filter(
+      (fav) => fav.id !== user.id,
+    );
     await article.save();
     return (await this.findBySlug(slug)).toArticle(user);
   }

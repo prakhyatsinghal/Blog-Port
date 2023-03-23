@@ -45,7 +45,7 @@ export class UserService {
       relations: ['followers'],
     });
     user.followers = user.followers.filter(
-      follower => follower !== currentUser,
+      (follower) => follower !== currentUser,
     );
     await user.save();
     return user.toProfile(currentUser);

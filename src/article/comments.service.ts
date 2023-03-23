@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
+import { FindOptionsWhere } from 'typeorm';
 import { CommentEntity } from 'src/entities/comment.entity';
 import { UserEntity } from 'src/entities/user.entity';
 import { CreateCommentDTO, CommentResponse } from 'src/models/comment.models';
@@ -13,11 +13,13 @@ export class CommentsService {
     private commentRepo: Repository<CommentEntity>,
   ) {}
 
-  findByArticleSlug(slug: string): Promise<CommentResponse[]> {
-    return this.commentRepo.find({
-      where: { 'article.slug': slug },
+  async findByArticleSlug(slug: string): Promise<CommentResponse[]> {
+    const where: FindOptionsWhere<CommentEntity> = { article: { slug } };
+    const comments = await this.commentRepo.find({
+      where,
       relations: ['article'],
     });
+    return comments;
   }
 
   findById(id: number): Promise<CommentResponse> {
@@ -35,9 +37,12 @@ export class CommentsService {
   }
 
   async deleteComment(user: UserEntity, id: number): Promise<CommentResponse> {
-    const comment = await this.commentRepo.findOne({
-      where: { id, 'author.id': user.id },
-    });
+    const where: FindOptionsWhere<CommentEntity> = { id };
+    const comment = await this.commentRepo
+      .createQueryBuilder()
+      .where(where)
+      .andWhere('author.id = :userId', { userId: user.id })
+      .getOne();
     await comment.remove();
     return comment;
   }
