@@ -9,8 +9,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const options = new DocumentBuilder()
-    .setTitle('Conduit Blog API')
-    .setDescription('Conduit blog api')
+    .setTitle('BlogPort Blog API')
+    .setDescription('BlogPort blog api')
     .setVersion('1.0.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'Token' },
